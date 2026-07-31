@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Noto Sans Tagalog";
+  src: url("/fonts/NotoSansTagalog-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  --font-baybayin: "Noto Sans Tagalog", sans-serif;
+}
+
+body {
+  margin: 0;
+}

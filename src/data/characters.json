@@ -1,0 +1,121 @@
+[
+  {
+    "id": "a",
+    "glyph": "ᜀ",
+    "romanization": "A",
+    "category": "vowel",
+    "notes": "Vowel A"
+  },
+  {
+    "id": "i",
+    "glyph": "ᜁ",
+    "romanization": "E / I",
+    "category": "vowel",
+    "notes": "Represents both E and I sounds"
+  },
+  {
+    "id": "u",
+    "glyph": "ᜂ",
+    "romanization": "O / U",
+    "category": "vowel",
+    "notes": "Represents both O and U sounds"
+  },
+  {
+    "id": "ka",
+    "glyph": "ᜃ",
+    "romanization": "KA",
+    "category": "consonant",
+    "notes": "Consonant K with inherent A sound"
+  },
+  {
+    "id": "ga",
+    "glyph": "ᜄ",
+    "romanization": "GA",
+    "category": "consonant",
+    "notes": "Consonant G with inherent A sound"
+  },
+  {
+    "id": "nga",
+    "glyph": "ᜅ",
+    "romanization": "NGA",
+    "category": "consonant",
+    "notes": "Consonant NG with inherent A sound"
+  },
+  {
+    "id": "ta",
+    "glyph": "ᜆ",
+    "romanization": "TA",
+    "category": "consonant",
+    "notes": "Consonant T with inherent A sound"
+  },
+  {
+    "id": "da",
+    "glyph": "ᜇ",
+    "romanization": "DA / RA",
+    "category": "consonant",
+    "notes": "Represents both D and R sounds with inherent A"
+  },
+  {
+    "id": "na",
+    "glyph": "ᜈ",
+    "romanization": "NA",
+    "category": "consonant",
+    "notes": "Consonant N with inherent A sound"
+  },
+  {
+    "id": "pa",
+    "glyph": "ᜉ",
+    "romanization": "PA",
+    "category": "consonant",
+    "notes": "Consonant P with inherent A sound"
+  },
+  {
+    "id": "ba",
+    "glyph": "ᜊ",
+    "romanization": "BA",
+    "category": "consonant",
+    "notes": "Consonant B with inherent A sound"
+  },
+  {
+    "id": "ma",
+    "glyph": "ᜋ",
+    "romanization": "MA",
+    "category": "consonant",
+    "notes": "Consonant M with inherent A sound"
+  },
+  {
+    "id": "ya",
+    "glyph": "ᜌ",
+    "romanization": "YA",
+    "category": "consonant",
+    "notes": "Consonant Y with inherent A sound"
+  },
+  {
+    "id": "la",
+    "glyph": "ᜎ",
+    "romanization": "LA",
+    "category": "consonant",
+    "notes": "Consonant L with inherent A sound"
+  },
+  {
+    "id": "wa",
+    "glyph": "ᜏ",
+    "romanization": "WA",
+    "category": "consonant",
+    "notes": "Consonant W with inherent A sound"
+  },
+  {
+    "id": "sa",
+    "glyph": "ᜐ",
+    "romanization": "SA",
+    "category": "consonant",
+    "notes": "Consonant S with inherent A sound"
+  },
+  {
+    "id": "ha",
+    "glyph": "ᜑ",
+    "romanization": "HA",
+    "category": "consonant",
+    "notes": "Consonant H with inherent A sound"
+  }
+]
