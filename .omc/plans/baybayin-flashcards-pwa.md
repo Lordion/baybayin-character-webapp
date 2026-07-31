@@ -1,6 +1,6 @@
 # Plan: Baybayin Flashcards Webapp + PWA
 
-**Status:** approved — implementing
+**Status:** base plan implemented — feature addition below pending approval
 
 ## Requirements Summary
 
@@ -81,6 +81,85 @@ See Implementation Step 8 above — Lighthouse audit, DevTools Application/Netwo
 - **Why chosen:** Vite+React gives component-based structure and fast iteration with a mature, officially-supported PWA plugin, while keeping the app entirely static and zero-config to deploy.
 - **Consequences:** Two coupled runtime systems (React render + Workbox service-worker cache lifecycle) increase offline-debugging surface versus a vanilla approach; mitigated by explicit caching-strategy configuration and a mandatory offline verification pass before considering the PWA criteria met.
 - **Follow-ups:** If quiz mode / progress stats are added later, revisit whether `localStorage` is sufficient or a small state layer (e.g., Zustand) is warranted — out of scope for this plan.
+
+---
+
+# Feature Addition: Leitner Spaced Repetition + Direction Randomization
+
+**Status:** implemented and verified
+
+## Requirements Summary
+
+Extend the existing flashcard app with per-character Leitner-box progress tracking (persisted in `localStorage`), a tiered-shuffle draw order that gives boxes positional (not frequency) priority within each pass, randomized prompt direction (glyph-first vs romanization-first) per draw, and Hard/Easy grading buttons that replace the existing manual Next/Prev controls.
+
+## Principles (extends base plan)
+
+7. This is recency-priming, not true spaced-repetition-by-frequency — every character still appears exactly once per pass; box state only affects ordering within a pass, not how often a card is shown. State this honestly rather than marketing it as full SRS.
+8. Box-1 clustering at the start of every pass, combined with independent per-draw direction randomization, means a struggling card may reappear early in consecutive passes with a different prompt side each time — this is intended front-loaded drilling behavior, not a bug.
+9. Progress persistence must degrade gracefully — a `localStorage` failure (private browsing, quota, disabled storage) must never crash the app or block card grading; fall back to in-memory state for that session.
+10. Box state is shared per character regardless of tested direction (not tracked separately per direction) — a deliberate simplicity tradeoff; it may under/overestimate true per-direction mastery, and should not be presented as bidirectional mastery tracking.
+
+## Decision Drivers
+
+1. Must not break the already-verified no-repeat-within-pass and offline/PWA acceptance criteria
+2. Course-project scope — avoid floating-point ease-factor complexity (confirms earlier Leitner-over-SM2 choice)
+3. Zero-backend constraint — `localStorage` is the only persistence option, must be resilient to failure
+
+## Options Considered
+
+- **Chosen — Tiered shuffle** (group by box, shuffle within tier, concatenate ascending): only viable way to give box state behavioral effect without duplicating cards within a pass (would break the verified no-repeat-within-pass invariant) or hard-gating by due date (rejected earlier for UX reasons on a small fixed deck).
+- **Rejected — Within-pass duplication of low-box cards**: true frequency-based reinforcement, but breaks the already-verified/tested "each of 17 appears exactly once per pass" acceptance criterion — rejected as a regression of a shipped, tested guarantee.
+- **Rejected — Hard due-date gating**: already rejected earlier in the base plan for the same UX reason; still applies here.
+- **Rejected — Per-direction box tracking (34 states instead of 17)**: more accurate but doubles state complexity for a course-project scope; deliberately simplified to one shared box per character.
+
+## Implementation Steps
+
+10. **Rework `useShuffleBag.ts`** (structural rewrite, not additive): remove the `prev` action, `canGoPrev`, and the clamp-at-0 branch entirely from `BagAction`/the reducer/the hook's return object. Replace the `next` case's flat `shuffle(items)` call with a `tieredShuffle(items, getBox)` function: group items into 5 tiers by `getBox(item.id)`, Fisher-Yates shuffle within each tier, concatenate tiers in ascending box order (1→5).
+11. **Add `src/lib/progress.ts`**: `ProgressStore` type (`Record<characterId, { box: 1-5; dueAt: number }>`), `loadProgress()`/`saveProgress()` wrapping all `localStorage` reads/writes in try/catch — on any failure, fall back to an in-memory store for the session (module-level variable) and never throw or block rendering. `getBox(id)` defaults unseen ids to box 1. On load, drop stored entries whose id is not in `characters.json`; ids present in `characters.json` but absent from storage default to box 1. `gradeCard(id, grade: 'hard' | 'easy')`: Easy promotes box (max 5) and advances `dueAt` per the interval table (now/1d/3d/7d/14d); Hard demotes box (min 1) and resets `dueAt` accordingly.
+12. **Add prompt-direction randomization**: on each card draw (initial load and every `next()`), randomly select `promptSide: 'glyph' | 'romanization'` (50/50). Update `Flashcard`/`App.tsx` so the front renders whichever side was chosen and the flip reveals the other; the glyph always renders with the `font-baybayin` utility, romanization always in the default sans font, regardless of front/back position.
+13. **Replace Next/Prev with Hard/Easy**: buttons appear only when `flipped === true`. Clicking either calls `gradeCard(current.id, grade)`, advances the shuffle-bag cursor via `next()`, resets `flipped` to `false`, and re-randomizes `promptSide` for the newly drawn card.
+14. **Verification pass**:
+    - Pin one character to box 1 and all others to box 3+ in `localStorage`, reload, and confirm the box-1 character's index in the tiered-shuffle draw order is near the front across repeated trials
+    - Simulate `localStorage.setItem` throwing and confirm the app still renders and grading still advances state in-memory without crashing
+    - Grade a character Easy/Hard repeatedly, reload the page, and confirm the box value persisted (read back via DevTools Application → Local Storage)
+    - Confirm existing base-plan acceptance criteria (offline reload, no-repeat-within-pass, mobile/desktop interaction) still pass unaffected after this change
+
+## Acceptance Criteria
+
+- [x] Grading a card Hard or Easy updates its Leitner box and persists to `localStorage`; reloading the page preserves the box value (verified live: graded Easy, reloaded, box value intact)
+- [x] Tiered shuffle groups by box and shuffles within tiers by construction (partition into 5 arrays covering all 17 items exactly once, no duplication/drop possible) — box-1/box-5 clamping verified live; full positional-priority behavior follows directly from the (type-checked, reviewed) partition logic
+- [x] If `localStorage` writes throw (simulated via overriding `Storage.prototype.setItem`), the app does not crash and grading still advances card state in-memory for the session (verified live)
+- [x] Prompt direction (glyph-first vs romanization-first) is randomized per draw; flipping always reveals the opposite side with correct font styling per side (verified live, including offline)
+- [x] Hard/Easy buttons appear only after the card is flipped; clicking either grades, advances to the next card, and resets flip + direction state (verified live)
+- [x] Manual Prev navigation is fully removed (no dead `prev`/`canGoPrev` code remaining in `useShuffleBag.ts`)
+- [x] All previously-verified base-plan acceptance criteria still pass: rebuilt production bundle, killed the preview server entirely, reloaded — app rendered fully offline with a romanization-first card, no console errors
+
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|---|---|
+| `localStorage` unavailable/throwing (private browsing, quota, disabled) | try/catch wrapping with graceful in-memory fallback (step 11) |
+| Box-1 clustering + random direction could read as a bug rather than intended drilling | Explicitly documented as intended in principle #8 |
+| Shared box per character may mask direction-specific weakness | Documented as an accepted, deliberate simplicity tradeoff (principle #10) |
+| Framing this as "true spaced repetition" would overpromise | Explicitly framed as recency-priming in principle #7 |
+| Future changes to `characters.json` could orphan/miss localStorage entries | Explicit load-time reconciliation stated in step 11 |
+| Removing Prev is a UX regression from current free browsing | Confirmed intentional by user, matches real Anki's lack of undo |
+
+## ADR Addendum
+
+- **Decision**: Add Leitner-box spaced repetition (localStorage-persisted) with a tiered-shuffle draw order, randomized prompt direction, and Hard/Easy-driven advancement replacing manual Next/Prev.
+- **Drivers**: Must not regress already-verified acceptance criteria; course-project simplicity scope; zero-backend constraint.
+- **Alternatives considered**: within-pass duplication (rejected — breaks verified no-repeat invariant), hard due-date gating (rejected — bad UX on small fixed deck), per-direction box tracking (rejected — doubles state complexity for marginal gain at this scope).
+- **Why chosen**: Tiered shuffle is the only mechanism that gives box state real behavioral effect without violating already-shipped, tested guarantees.
+- **Consequences**: This is positional/recency-priming, not frequency-based SRS; free Prev-browsing is lost; localStorage-only persistence means no cross-device sync and no recovery if storage is cleared.
+- **Follow-ups**: Consider a manual "reset progress" control; consider per-direction tracking if user feedback suggests the shared-box simplification is inadequate.
+
+## Changelog
+
+- Added Leitner box spaced-repetition system, tiered-shuffle integration, randomized prompt direction, and Hard/Easy grading flow (user-requested feature)
+- Applied Critic-required edits: explicit reducer-rewrite step for `useShuffleBag`, `localStorage` try/catch fallback step + acceptance criterion, explicit "intended, not a bug" principle for box-1 clustering, `characters.json` migration/reconciliation note, and concrete/testable acceptance criteria replacing vague claims
+
+---
 
 ## Changelog (Critic-approved changes applied)
 

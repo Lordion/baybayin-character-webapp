@@ -1,4 +1,5 @@
 import { useCallback, useReducer } from "react";
+import type { Box } from "../lib/progress";
 
 function shuffle<T>(items: readonly T[]): T[] {
   const shuffled = [...items];
@@ -9,51 +10,57 @@ function shuffle<T>(items: readonly T[]): T[] {
   return shuffled;
 }
 
+/**
+ * Groups items into 5 tiers by box (box 1 first), shuffles within each
+ * tier, then concatenates ascending. This gives struggling (low-box) cards
+ * positional priority within a pass while every item still appears exactly
+ * once — it is recency-priming, not frequency-based repetition.
+ */
+function tieredShuffle<T>(items: readonly T[], getBox: (item: T) => Box): T[] {
+  const tiers: T[][] = [[], [], [], [], []];
+  for (const item of items) {
+    tiers[getBox(item) - 1].push(item);
+  }
+  return tiers.flatMap(shuffle);
+}
+
 interface BagState<T> {
   order: T[];
   cursor: number;
 }
 
-type BagAction = { type: "next" } | { type: "prev" };
+type BagAction = { type: "next" };
 
-function createReducer<T>(items: readonly T[]) {
+function createReducer<T>(items: readonly T[], getBox: (item: T) => Box) {
   return (state: BagState<T>, action: BagAction): BagState<T> => {
     switch (action.type) {
       case "next":
-        // Reshuffling here (rather than wrapping the cursor) means the last
-        // card of one pass can equal the first card of the next — an
-        // accepted simplicity tradeoff, see plan risks/notes.
         if (state.cursor + 1 >= state.order.length) {
-          return { order: shuffle(items), cursor: 0 };
+          return { order: tieredShuffle(items, getBox), cursor: 0 };
         }
         return { order: state.order, cursor: state.cursor + 1 };
-      case "prev":
-        // Clamped at 0 rather than wrapping into the previous pass.
-        return { order: state.order, cursor: Math.max(0, state.cursor - 1) };
     }
   };
 }
 
 /**
- * Shuffle-bag card ordering: Fisher-Yates shuffle `items` once per pass and
- * walk a cursor through it, so no item repeats until every item has been
- * shown, then reshuffle for the next pass.
+ * Tiered shuffle-bag card ordering: walk a cursor through a pass built by
+ * `tieredShuffle`, reshuffling into a new pass once the cursor runs out.
+ * `getBox` is read fresh on every reshuffle, so grading updates affect the
+ * next pass's ordering.
  */
-export function useShuffleBag<T>(items: readonly T[]) {
-  const [state, dispatch] = useReducer(createReducer(items), undefined, () => ({
-    order: shuffle(items),
+export function useShuffleBag<T>(items: readonly T[], getBox: (item: T) => Box) {
+  const [state, dispatch] = useReducer(createReducer(items, getBox), undefined, () => ({
+    order: tieredShuffle(items, getBox),
     cursor: 0,
   }));
 
   const next = useCallback(() => dispatch({ type: "next" }), []);
-  const prev = useCallback(() => dispatch({ type: "prev" }), []);
 
   return {
     current: state.order[state.cursor],
     index: state.cursor,
     total: state.order.length,
-    canGoPrev: state.cursor > 0,
     next,
-    prev,
   };
 }
