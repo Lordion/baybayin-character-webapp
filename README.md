@@ -5,11 +5,21 @@ An installable, offline-first Progressive Web App for studying the 17 base chara
 ## Features
 
 - All 17 base Baybayin characters (Unicode Tagalog block `U+1700`–`U+1711`), each with romanization and a short note
-- Tap/click to flip a card between glyph and romanization
-- Shuffle-bag card ordering — every character appears once before any repeats, then reshuffles for the next pass
+- Each card randomly prompts with either the glyph or the romanization side; tap/click (or `Space`) flips it to reveal the other
+- Leitner-style self-grading: once flipped, mark a card **Hard** or **Easy** (or press `1`/`2`) to move it down or up through 5 mastery boxes
+- Progress is persisted per-character in `localStorage` (with an in-memory fallback if storage is unavailable), so mastery carries over between sessions
+- Tiered shuffle-bag ordering — cards are grouped by their current box, shuffled within each box, and dealt low-box-first, so lower-mastery characters surface earlier in each pass while every character still appears exactly once per pass before reshuffling
 - Fully responsive, mobile-first layout
 - Installable PWA that works completely offline after the first load (including the custom script font)
 - Zero backend — a static site with no server-side code
+
+## How It Works
+
+1. The app deals cards from a **tiered shuffle-bag**: characters are bucketed into 5 boxes by mastery (box 1 = least mastered), each box is shuffled independently, and the boxes are dealt low-to-high. This front-loads weaker characters within a pass while still showing every character exactly once before reshuffling for the next pass.
+2. For each card, the prompt side (glyph or romanization) is chosen at random.
+3. Tap/click the card, or press `Space`, to flip it and reveal the other side.
+4. Once flipped, grade yourself with the **Hard** or **Easy** button (or `1`/`2`) — Easy moves the character up a box (max box 5), Hard moves it down a box (min box 1).
+5. Grades are written to `localStorage` immediately, so mastery per character persists across reloads and future sessions; boxes are read fresh at the start of each pass so grading during a pass affects the next one.
 
 ## Tech Stack
 
@@ -82,10 +92,11 @@ public/
   pwa-maskable-512x512.png
 src/
   data/characters.json     # all 17 characters: glyph, romanization, category, notes
-  hooks/useShuffleBag.ts   # Fisher-Yates shuffle-bag card ordering
+  hooks/useShuffleBag.ts   # tiered (box-aware) shuffle-bag card ordering
+  lib/progress.ts          # 5-box Leitner progress, persisted to localStorage
   components/Flashcard.tsx # flip card UI
   types.ts                 # BaybayinCharacter type
-  App.tsx                  # app shell: progress, navigation, flip state
+  App.tsx                  # app shell: grading, keyboard shortcuts, flip state
   index.css                # Tailwind entry + self-hosted @font-face
   main.tsx                 # React entry point
 vite.config.ts             # Tailwind + vite-plugin-pwa configuration
