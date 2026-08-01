@@ -17,6 +17,10 @@ dist-ssr
 .env.*
 !.env.example
 
+.omc
+
+UX-IMPROVEMENTS.md
+
 # Claude Code local settings (personal, machine-specific)
 .claude/settings.local.json
 

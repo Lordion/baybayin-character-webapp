@@ -8,7 +8,9 @@ An installable, offline-first Progressive Web App for studying the 17 base chara
 - Each card randomly prompts with either the glyph or the romanization side; tap/click (or `Space`) flips it to reveal the other
 - Leitner-style self-grading: once flipped, mark a card **Hard** or **Easy** (or press `1`/`2`) to move it down or up through 5 mastery boxes
 - Progress is persisted per-character in `localStorage` (with an in-memory fallback if storage is unavailable), so mastery carries over between sessions
+- A 5-segment progress bar shows how your characters are distributed across mastery boxes at a glance
 - Tiered shuffle-bag ordering — cards are grouped by their current box, shuffled within each box, and dealt low-box-first, so lower-mastery characters surface earlier in each pass while every character still appears exactly once per pass before reshuffling
+- Accessible by design: visible focus rings on every interactive element, and a live region announces each flip/grade for screen reader users
 - Fully responsive, mobile-first layout
 - Installable PWA that works completely offline after the first load (including the custom script font)
 - Zero backend — a static site with no server-side code
@@ -96,7 +98,7 @@ src/
   lib/progress.ts          # 5-box Leitner progress, persisted to localStorage
   components/Flashcard.tsx # flip card UI
   types.ts                 # BaybayinCharacter type
-  App.tsx                  # app shell: grading, keyboard shortcuts, flip state
+  App.tsx                  # app shell: grading, keyboard shortcuts, flip state, progress bar, a11y announcements
   index.css                # Tailwind entry + self-hosted @font-face
   main.tsx                 # React entry point
 vite.config.ts             # Tailwind + vite-plugin-pwa configuration
